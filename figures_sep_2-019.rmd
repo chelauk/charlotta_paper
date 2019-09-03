@@ -12,12 +12,70 @@ output:
 
 # Charlotta's paper
 ## Figures for Paper
-
-
-
-## Summary
+### Summary
 
  - differences between fetal and adult cells in general
+ 
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r libraries}
+library(knitr)
+library(ggplot2)
+library(sva)
+library(dplyr)
+library(preprocessCore)
+library(ggrepel)
+library(Biobase)
+library(tibble)
+library(scater)
+library(gghighlight)
+library(annotables)
+library(DESeq2)
+library(fgsea)
+library(DT)
+library(stringr)
+```
+ 
+
+
+```{r data_prep}
+# sample_table <- read.delim('~/projects/charlotta/cb_em/22_02_19/charlotta/human_primary_sample_22_03_19/charlotta_simplified_table.tsv', stringsAsFactors = FALSE)
+# dir.create('data')
+# save(sample_table, file = "data/sample_table.RData")
+data(sample_table)
+
+rownames(sample_table) <- sample_table$Name
+sample_table$Name <- NULL
+sample_table$SampleID <- NULL
+sample_table$batch <- c(rep("nov_18", 27), rep("mar_19",32))
+sample_table$stage <- c("w12","w12","w10","w10","w10","CS19",
+                        "CS19","CS19","CB","CB","CB","CS16",
+                        "CS16","CB","CB","CB","w13","w13",
+                        "CS20","CS20","CS20","w8","w8","w8",
+                        "BM","BM","BM","BM","BM","BM","CS19"
+                        ,"CS19","BM","BM","BM","BM","BM","BM",
+                        "CB","CB","CB","CS2","CS2","CS2","CS2"
+                        ,"CS2","CS2","w13","w13","w13","CS23",
+                        "CS23","CS23","CS22","CS22","CS22",
+                        "w13","w13","w13")
+
+sample_table$diff_groups <- c(1,2,3,1,2,3,1,2,3,1,2,2,1,3,1,2,3,2,3,1,2,3,2,1,1,2,3,3,2,1,2,1,3,2,1,3,2,1,3,2,1,3,2,1,3,2,1,3,2,1,3,2,1,3,2,1,3,2,1)
+
+sample_table$pools <- c("W12_13","W12_13","W8_10","W8_10","W8_10","CS19_23","CS19_23","CS19_23","CB","CB","CB","CS16","CS16","CB","CB","CB","W12_13","W12_13","CS19_23","CS19_23","CS19_23","W8_10","W8_10","W8_10","BM","BM","BM","BM","BM","BM","CS19_23","CS19_23","BM","BM","BM","BM","BM","BM","CB","CB","CB","CS19_23","CS19_23","CS19_23","CS19_23","CS19_23","CS19_23","W12_13","W12_13","W12_13","CS19_23","CS19_23","CS19_23","CS19_23","CS19_23","CS19_23","W12_13","W12_13","W12_13")
+
+sample_table$age <- case_when(str_detect(sample_table$pools,"W|CS") ~ "fetal", TRUE ~ "adult"  )
+
+
+sample_table$batch <- str_replace(sample_table$batch, "mar", "jun")
+datatable(sample_table) %>% 
+  formatStyle("diff_groups", backgroundColor = styleEqual(c(1,2,3), c("#EAD3BF","#AA9486", "#B6854D"))) %>%
+  formatStyle("pools", backgroundColor = styleEqual(c("W12_13","CS19_23","CB","W8_10","BM","CS16"), c("#9986A5","#79402E", "#CCBA72","#F3DF6C","#D9D0D3","#8D8680")))
+
+```
 
 ### Volcanoplot 
  - HSC like cells, IL7R prog and proB from adult BM vs w12-13, w8-10 and CS samples 
@@ -30,3 +88,5 @@ output:
 
 - only IL7R and proB from BM and all fetal stages 
 - exclude CB, do with and without CS16
+
+
