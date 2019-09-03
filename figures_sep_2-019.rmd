@@ -12,11 +12,8 @@ output:
 
 # Charlotta's paper
 ## Figures for Paper
-### Summary
-
+### DGE summary
  - differences between fetal and adult cells in general
- 
-
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE)
