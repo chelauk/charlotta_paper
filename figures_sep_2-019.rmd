@@ -118,12 +118,16 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
   formatStyle("pools", backgroundColor = styleEqual(c("W12_13","CS19_23","CB","W8_10","BM","CS16"), c("#9986A5","#79402E", "#CCBA72","#F3DF6C","#D9D0D3","#8D8680")))
 ```
 
-### DGE
+### DGE performed after removing outliers illustrated in the tSNA/PCA/UMAPs below
 
 ```{r}
-data(big_counts)
-big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
-# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table, design = ~age)
+# data(big_counts)
+# sample_table2 <- sample_table[!rownames(sample_table) %in% 
+#                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
+#                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
+# 
+# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table2))]
+# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table2, design = ~age)
 # dds <- DESeq(dds)
 # save(dds, file = 'data/dds.RData')
 
@@ -197,6 +201,8 @@ barplot(ego, showCategory=20)
 ```{r}
 set.seed(123)
 # UMAP, PCA and TSNE are embedded in scater
+data(big_counts)
+big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
 sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
                             colData = sample_table)
 
