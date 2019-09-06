@@ -170,7 +170,7 @@ library(clusterProfiler)
 ## https://github.com/YuLab-SMU/DOSE/wiki/how-to-prepare-your-own-geneList
 # 
 # geneList <- res$log2FoldChange
-# names(geneList) <- res$entrez
+# names(geneList) <- res$ensgene
 # geneList <- sort(geneList, decreasing = TRUE)
 # geneList <- geneList[!is.na(names(geneList))]
 # gene <- names(geneList)[abs(geneList) > 2]
@@ -179,13 +179,14 @@ library(clusterProfiler)
 # ego <- enrichGO(gene          = gene,
 #                 universe      = names(geneList),
 #                 OrgDb         = org.Hs.eg.db,
+#                 keyType = "ENSEMBL",
 #                 ont           = "BP",
 #                 pAdjustMethod = "BH",
 #                 pvalueCutoff  = 0.01,
 #                 qvalueCutoff  = 0.05,
 #         readable      = TRUE)
-# # # 
-# save(ego, file = 'data/my_ego.RData')
+# #
+#save(ego, file = 'data/my_ego.RData')
 data(my_ego)
 barplot(ego, showCategory=20)
 ```
@@ -231,7 +232,7 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   theme_bw() +
   xlab(label = "PCA 1") +
   ylab(label = "PCA 2") + 
-  labs(colour = "phenotype", shape = "pools") 
+  labs(colour = "batch", shape = "pools") 
 ```
 
 ### UMAP
@@ -330,42 +331,52 @@ ggplot(my_pca_plot$data,aes(x=my_pca_plot$data$X,y=my_pca_plot$data$Y,colour = c
 
 ```{r}
 # prep fpkm file
-fpkm <- read.table('human_fpkm.tsv', header = TRUE, stringsAsFactors = FALSE)
-fpkm <- dplyr::rename(fpkm,
-                               BM_P5_11       = C23_N728_S505,
-                               BM_P10_11      = B04_N704_S503,
-                               BM_P12_11      = B06_N706_S503,
-                               CS19_P5_11     = B08_N710_S503,
-                               CS19_P12_11    = B12_N715_S503,
-                               BM1_P5_12      = B14_N718_S503,
-                               BM1_P10_12     = B16_N720_S503,
-                               BM1_P12_12     = B18_N722_S503,
-                               BM2_P5_12      = B20_N724_S503,
-                               BM2_P10_12     = B22_N727_S503,
-                               BM2_P12_12     = F20_N724_S508,
-                               CB_P5_12       = E23_N728_S507,
-                               CB_P10_12      = D04_N704_S506,
-                               CB_P12_12      = D06_N706_S506,
-                               CS22_P5_12     = D08_N710_S506,
-                               CS22_P10_12    = D10_N712_S506,
-                               CS22_P12_12    = D12_N715_S506,
-                               CS20_P5_12     = D14_N718_S506,
-                               CS20_P10_12    = D16_N720_S506,
-                               CS20_P12_12    = D18_N722_S506,
-                               FL13w_P5_13    = D20_N724_S506,
-                               FL13w_P10_13   = D22_N727_S506,
-                               FL13w_P12_13   = F22_N727_S508,
-                               CS23_P5_13     = G23_N728_S510,
-                               CS23_P10_13    = F04_N704_S508,
-                               CS23_P12_13    = F06_N706_S508,
-                               CS22_P5_19     = F08_N710_S508,
-                               CS22_P10_19    = F10_N712_S508,
-                               CS22_P12_19    = F12_N715_S508,
-                               w13_FL_P5_19   = F14_N718_S508,
-                               w13_FL_P10_19  = F16_N720_S508,
-                               w13_FL_P12_19  = F18_N722_S508)
-
-
-dim(sample_table)
+# jun_fpkm <- read.table('human_fpkm.tsv', header = TRUE, stringsAsFactors = FALSE)
+# jun_fpkm <- dplyr::rename(fpkm,
+#                                BM_P5_11       = C23_N728_S505,
+#                                BM_P10_11      = B04_N704_S503,
+#                                BM_P12_11      = B06_N706_S503,
+#                                CS19_P5_11     = B08_N710_S503,
+#                                CS19_P12_11    = B12_N715_S503,
+#                                BM1_P5_12      = B14_N718_S503,
+#                                BM1_P10_12     = B16_N720_S503,
+#                                BM1_P12_12     = B18_N722_S503,
+#                                BM2_P5_12      = B20_N724_S503,
+#                                BM2_P10_12     = B22_N727_S503,
+#                                BM2_P12_12     = F20_N724_S508,
+#                                CB_P5_12       = E23_N728_S507,
+#                                CB_P10_12      = D04_N704_S506,
+#                                CB_P12_12      = D06_N706_S506,
+#                                CS22_P5_12     = D08_N710_S506,
+#                                CS22_P10_12    = D10_N712_S506,
+#                                CS22_P12_12    = D12_N715_S506,
+#                                CS20_P5_12     = D14_N718_S506,
+#                                CS20_P10_12    = D16_N720_S506,
+#                                CS20_P12_12    = D18_N722_S506,
+#                                FL13w_P5_13    = D20_N724_S506,
+#                                FL13w_P10_13   = D22_N727_S506,
+#                                FL13w_P12_13   = F22_N727_S508,
+#                                CS23_P5_13     = G23_N728_S510,
+#                                CS23_P10_13    = F04_N704_S508,
+#                                CS23_P12_13    = F06_N706_S508,
+#                                CS22_P5_19     = F08_N710_S508,
+#                                CS22_P10_19    = F10_N712_S508,
+#                                CS22_P12_19    = F12_N715_S508,
+#                                w13_FL_P5_19   = F14_N718_S508,
+#                                w13_FL_P10_19  = F16_N720_S508,
+#                                w13_FL_P12_19  = F18_N722_S508)
+# 
+# rownames(jun_fpkm) <- jun_fpkm$ensgene
+# 
+# nov_20_fpkm <- read.table('legion/20_nov_18/temp2', header = TRUE, stringsAsFactors = FALSE)
+# rownames(nov_20_fpkm) <- nov_20_fpkm$ensgene
+# 
+# nov_20_fpkm <- nov_20_fpkm[which(rownames(nov_20_fpkm) %in% rownames(jun_fpkm)),]
+# jun_fpkm<-jun_fpkm[which(rownames(jun_fpkm) %in% rownames(nov_20_fpkm)),]
+# big_fpkm  <- cbind(jun_fpkm,nov_20_fpkm)
+# big_fpkm$ensgene <- NULL
+# big_fpkm$ensgene <- NULL
+# big_fpkm <- big_fpkm[,-34]
+save(big_fpkm, file = 'data/big_fpkm.RData')
 ```
 
