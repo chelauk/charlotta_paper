@@ -43,13 +43,13 @@ library(stringr)
 # save(sample_table, file = "data/sample_table.RData")
 data(sample_table)
 
-## prepare data from cluster
-#jun_25_counts <- read.table('legion/CB_EM/charlotta/mar_14_19/human_big_counts', header = TRUE, stringsAsFactors = FALSE)
-#nov_20_counts <- read.table('legion/20_nov_2017/big_counts', header = TRUE, stringsAsFactors = FALSE)
+# prepare data from cluster
+# jun_25_counts <- read.table('legion/human_big_counts', header = TRUE, stringsAsFactors = FALSE)
+# nov_20_counts <- read.table('legion/20_nov_18/big_counts', header = TRUE, stringsAsFactors = FALSE)
 # nov_20_counts <- nov_20_counts[which(rownames(nov_20_counts) %in% rownames(jun_25_counts)),]
 # jun_25_counts<-jun_25_counts[which(rownames(jun_25_counts) %in% rownames(nov_20_counts)),]
 # big_counts <- cbind(jun_25_counts,nov_20_counts)
-# 
+# # 
 # big_counts <- dplyr::rename(big_counts,
 #                                BM_P5_11       = C23_N728_S505,
 #                                BM_P10_11      = B04_N704_S503,
@@ -84,8 +84,8 @@ data(sample_table)
 #                                w13_FL_P10_19  = F16_N720_S508,
 #                                w13_FL_P12_19  = F18_N722_S508)
 # big_counts <- big_counts[,match(sample_table$Name, colnames(big_counts))]
-# # 
-# # remove zero expression genes 
+# #  
+# # # remove zero expression genes 
 # big_counts <- big_counts[rowSums(big_counts) > 0,]
 # save(big_counts, file = 'data/big_counts.RData')
 
@@ -126,8 +126,8 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
 #                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
 #                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
 # 
-# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table2))]
-# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table2, design = ~age)
+# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
+# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table, design = ~age)
 # dds <- DESeq(dds)
 # save(dds, file = 'data/dds.RData')
 
@@ -172,8 +172,9 @@ library(clusterProfiler)
 # geneList <- res$log2FoldChange
 # names(geneList) <- res$entrez
 # geneList <- sort(geneList, decreasing = TRUE)
+# geneList <- geneList[!is.na(names(geneList))]
 # gene <- names(geneList)[abs(geneList) > 2]
-# # 
+# #
 # library(org.Hs.eg.db)
 # ego <- enrichGO(gene          = gene,
 #                 universe      = names(geneList),
@@ -183,7 +184,7 @@ library(clusterProfiler)
 #                 pvalueCutoff  = 0.01,
 #                 qvalueCutoff  = 0.05,
 #         readable      = TRUE)
-# # 
+# # # 
 # save(ego, file = 'data/my_ego.RData')
 data(my_ego)
 barplot(ego, showCategory=20)
@@ -216,14 +217,13 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   theme_bw() +
   xlab(label = "dimension 1") +
   ylab(label = "dimension 2") + 
-  labs(colour = "phenotype", shape = "age") +
-  gghighlight(Y < -40, label_key = sample_id )
+  labs(colour = "phenotype", shape = "age") 
 ```
 
-### PCA
+### PCA 
 
 ```{r}
-my_pca_plot <- plotPCA(sce, colour_by = "Phenotype", shape_by = "age")
+my_pca_plot <- plotPCA(sce, colour_by = "batch", shape_by = "age")
 
 my_data <- my_pca_plot$data %>% dplyr::mutate(sample_id = rownames(.))
 ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) + 
@@ -231,8 +231,7 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   theme_bw() +
   xlab(label = "PCA 1") +
   ylab(label = "PCA 2") + 
-  labs(colour = "phenotype", shape = "age") +
-  gghighlight(X > 30, label_key = sample_id)
+  labs(colour = "phenotype", shape = "age") 
 ```
 
 ### UMAP
@@ -245,66 +244,7 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   theme_bw() +
   xlab(label = "UMAP 1") +
   ylab(label = "UMAP 2") + 
-  labs(colour = "phenotype", shape = "age") +
-  gghighlight(Y > 5, label_key = sample_id)
-```
-
-## take out outliers
-
-TSNE
-
-```{r}
-set.seed(123)
-sample_table <- sample_table[!rownames(sample_table) %in% 
-               c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
-                                "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
-
-big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
-
-sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
-                            colData = sample_table)
-
-sce <- normalize(sce)
-my_tsne_plot <- plotTSNE(sce, colour_by = "Phenotype", shape_by = "age")
-
-my_data <- my_tsne_plot$data
-my_data <- my_data %>% dplyr::mutate(sample_id = rownames(.))
-ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) + 
-  geom_point(size = 3) +
-  theme_bw() +
-  xlab(label = "dimension 1") +
-  ylab(label = "dimension 2") + 
   labs(colour = "phenotype", shape = "age") 
-
-```
-
-
-### PCA
-
-```{r}
-my_pca_plot <- plotPCA(sce, colour_by = "Phenotype", shape_by = "age")
-
-my_data <- my_pca_plot$data %>% dplyr::mutate(sample_id = rownames(.))
-ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) + 
-  geom_point(size = 3) +
-  theme_bw() +
-  xlab(label = "PCA 1") +
-  ylab(label = "PCA 2") + 
-  labs(colour = "phenotype", shape = "age") 
-```
-
-
-### UMAP
-
-```{r}
-my_umap_plot <- plotUMAP(sce, colour_by = "Phenotype", shape_by = "age")
-my_data <- my_umap_plot$data %>% dplyr::mutate(sample_id = rownames(.))
-ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) + 
-  geom_point(size = 3) +
-  theme_bw() +
-  xlab(label = "UMAP 1") +
-  ylab(label = "UMAP 2") + 
-  labs(colour = "phenotype", shape = "age")
 ```
 
 
