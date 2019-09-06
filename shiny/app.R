@@ -1,15 +1,18 @@
 # Load packages ----
 library(shiny)
 library(DT)
+library(ggplot2)
+library(dplyr)
+
 # Load data ----
 data(res)
 
 # User interface ----
 ui <- fluidPage(
     title = "volcano, DGE and FPKMs",
-    fluidPage(DTOutput("tbl"),
+    fluidPage(DT::dataTableOutput("tbl"),
               textOutput("text_out"),
-              box( plotOutput("volcano_out"),
+              shinydashboard::box( plotOutput("volcano_out"),
                    downloadButton("download_volcano","Download"))
     )
 )
@@ -24,8 +27,9 @@ plot_volcano <- function(x) {
 }
 
 server <- function(input, output) {
-    output$tbl <- renderDT(res, selection = list(target = 'row'))
+    output$tbl <- DT::renderDataTable(res, selection = list(target = 'row' , selected = 1))
     output$volcano_out <- renderPlot(plot_volcano(input$tbl_rows_selected))
+    output$text_out <- renderText(input$tbl_rows_selected)
     output$download_volcano <- downloadHandler(
         filename = function(){
             paste("volcano",".pdf",sep="")},
