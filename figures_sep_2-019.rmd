@@ -208,7 +208,7 @@ sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
                             colData = sample_table)
 
 sce <- normalize(sce)
-my_tsne_plot <- plotTSNE(sce, colour_by = "Phenotype", shape_by = "age")
+my_tsne_plot <- plotTSNE(sce, colour_by = "Phenotype", shape_by = "pools")
 
 my_data <- my_tsne_plot$data
 my_data <- my_data %>% dplyr::mutate(sample_id = rownames(.))
@@ -217,13 +217,13 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   theme_bw() +
   xlab(label = "dimension 1") +
   ylab(label = "dimension 2") + 
-  labs(colour = "phenotype", shape = "age") 
+  labs(colour = "phenotype", shape = "pools") 
 ```
 
 ### PCA 
 
 ```{r}
-my_pca_plot <- plotPCA(sce, colour_by = "batch", shape_by = "age")
+my_pca_plot <- plotPCA(sce, colour_by = "batch", shape_by = "pools")
 
 my_data <- my_pca_plot$data %>% dplyr::mutate(sample_id = rownames(.))
 ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) + 
@@ -231,20 +231,20 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   theme_bw() +
   xlab(label = "PCA 1") +
   ylab(label = "PCA 2") + 
-  labs(colour = "phenotype", shape = "age") 
+  labs(colour = "phenotype", shape = "pools") 
 ```
 
 ### UMAP
 
 ```{r}
-my_umap_plot <- plotUMAP(sce, colour_by = "Phenotype", shape_by = "age")
+my_umap_plot <- plotUMAP(sce, colour_by = "Phenotype", shape_by = "pools")
 my_data <- my_umap_plot$data %>% dplyr::mutate(sample_id = rownames(.))
 ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) + 
   geom_point(size = 3) +
   theme_bw() +
   xlab(label = "UMAP 1") +
   ylab(label = "UMAP 2") + 
-  labs(colour = "phenotype", shape = "age") 
+  labs(colour = "phenotype", shape = "pools") 
 ```
 
 
@@ -261,35 +261,35 @@ sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
 sce <- sce[,!str_detect(sce$Phenotype, "CD45RA")]
 
 sce <- normalize(sce)
-my_tsne_plot <- plotTSNE(sce, colour_by = "Phenotype", shape_by = "age")
+my_tsne_plot <- plotTSNE(sce, colour_by = "Phenotype", shape_by = "pools")
 
 ggplot(my_tsne_plot$data,aes(x=my_tsne_plot$data$X,y=my_tsne_plot$data$Y,colour = colour_by, shape = shape_by)) + 
   geom_point(size = 3) +
   theme_bw() +
   xlab(label = "dimension 1") +
-  ylab(label = "dimension 2") + labs(colour = "phenotype", shape = "age")
+  ylab(label = "dimension 2") + labs(colour = "phenotype", shape = "pools")
 ```
 
 ### PCA
 
 ```{r}
-my_pca_plot <- plotPCA(sce, colour_by = "Phenotype", shape_by = "age")
+my_pca_plot <- plotPCA(sce, colour_by = "Phenotype", shape_by = "pools")
 ggplot(my_pca_plot$data,aes(x=my_pca_plot$data$X,y=my_pca_plot$data$Y,colour = colour_by, shape = shape_by)) + 
   geom_point(size = 3) +
   theme_bw() +
   xlab(label = "PCA 1") +
-  ylab(label = "PCA 2") + labs(colour = "phenotype", shape = "age")
+  ylab(label = "PCA 2") + labs(colour = "phenotype", shape = "pools")
 ```
 
 ### UMAP
 
 ```{r}
-my_umap_plot <- plotUMAP(sce, colour_by = "Phenotype", shape_by = "age")
+my_umap_plot <- plotUMAP(sce, colour_by = "Phenotype", shape_by = "pools")
 ggplot(my_umap_plot$data,aes(x=my_umap_plot$data$X,y=my_umap_plot$data$Y,colour = colour_by, shape = shape_by)) + 
   geom_point(size = 3) +
   theme_bw() +
   xlab(label = "UMAP 1") +
-  ylab(label = "UMAP 2") + labs(colour = "phenotype", shape = "age")
+  ylab(label = "UMAP 2") + labs(colour = "phenotype", shape = "pools")
 ```
 
 
@@ -306,24 +306,66 @@ sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
 sce <- sce[,str_detect(sce$Phenotype, "IL7R")]
 
 sce <- normalize(sce)
-my_tsne_plot <- plotTSNE(sce, colour_by = "pools", shape_by = "age")
+my_tsne_plot <- plotTSNE(sce, colour_by = "pools", shape_by = "pools")
 
 ggplot(my_tsne_plot$data,aes(x=my_tsne_plot$data$X,y=my_tsne_plot$data$Y,colour = colour_by, shape = shape_by)) + 
   geom_point(size = 3) +
   theme_bw() +
   xlab(label = "dimension 1") +
-  ylab(label = "dimension 2") + labs(colour = "pools", shape = "age")
+  ylab(label = "dimension 2") + labs(colour = "pools", shape = "pools")
 ```
 
 ### PCA
 
 ```{r}
-my_pca_plot <- plotPCA(sce, colour_by = "pools", shape_by = "age")
+my_pca_plot <- plotPCA(sce, colour_by = "pools", shape_by = "pools")
 ggplot(my_pca_plot$data,aes(x=my_pca_plot$data$X,y=my_pca_plot$data$Y,colour = colour_by, shape = shape_by)) + 
   geom_point(size = 3) +
   theme_bw() +
   xlab(label = "PCA 1") +
-  ylab(label = "PCA 2") + labs(colour = "pools", shape = "age")
+  ylab(label = "PCA 2") + labs(colour = "pools", shape = "pools")
 ```
 
 ### UMAP not working for small sample size
+
+```{r}
+# prep fpkm file
+fpkm <- read.table('human_fpkm.tsv', header = TRUE, stringsAsFactors = FALSE)
+fpkm <- dplyr::rename(fpkm,
+                               BM_P5_11       = C23_N728_S505,
+                               BM_P10_11      = B04_N704_S503,
+                               BM_P12_11      = B06_N706_S503,
+                               CS19_P5_11     = B08_N710_S503,
+                               CS19_P12_11    = B12_N715_S503,
+                               BM1_P5_12      = B14_N718_S503,
+                               BM1_P10_12     = B16_N720_S503,
+                               BM1_P12_12     = B18_N722_S503,
+                               BM2_P5_12      = B20_N724_S503,
+                               BM2_P10_12     = B22_N727_S503,
+                               BM2_P12_12     = F20_N724_S508,
+                               CB_P5_12       = E23_N728_S507,
+                               CB_P10_12      = D04_N704_S506,
+                               CB_P12_12      = D06_N706_S506,
+                               CS22_P5_12     = D08_N710_S506,
+                               CS22_P10_12    = D10_N712_S506,
+                               CS22_P12_12    = D12_N715_S506,
+                               CS20_P5_12     = D14_N718_S506,
+                               CS20_P10_12    = D16_N720_S506,
+                               CS20_P12_12    = D18_N722_S506,
+                               FL13w_P5_13    = D20_N724_S506,
+                               FL13w_P10_13   = D22_N727_S506,
+                               FL13w_P12_13   = F22_N727_S508,
+                               CS23_P5_13     = G23_N728_S510,
+                               CS23_P10_13    = F04_N704_S508,
+                               CS23_P12_13    = F06_N706_S508,
+                               CS22_P5_19     = F08_N710_S508,
+                               CS22_P10_19    = F10_N712_S508,
+                               CS22_P12_19    = F12_N715_S508,
+                               w13_FL_P5_19   = F14_N718_S508,
+                               w13_FL_P10_19  = F16_N720_S508,
+                               w13_FL_P12_19  = F18_N722_S508)
+
+
+dim(sample_table)
+```
+
