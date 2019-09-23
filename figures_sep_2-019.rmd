@@ -42,7 +42,6 @@ library(stringr)
 # dir.create('data')
 # save(sample_table, file = "data/sample_table.RData")
 data(sample_table)
-
 # prepare data from cluster
 # jun_25_counts <- read.table('legion/human_big_counts', header = TRUE, stringsAsFactors = FALSE)
 # nov_20_counts <- read.table('legion/20_nov_18/big_counts', header = TRUE, stringsAsFactors = FALSE)
@@ -99,8 +98,8 @@ sample_table$stage <- c("w12","w12","w10","w10","w10","CS19",
                         "CS20","CS20","CS20","w8","w8","w8",
                         "BM","BM","BM","BM","BM","BM","CS19"
                         ,"CS19","BM","BM","BM","BM","BM","BM",
-                        "CB","CB","CB","CS2","CS2","CS2","CS2"
-                        ,"CS2","CS2","w13","w13","w13","CS23",
+                        "CB","CB","CB","CS22","CS22","CS22","CS20"
+                        ,"CS20","CS20","w13","w13","w13","CS23",
                         "CS23","CS23","CS22","CS22","CS22",
                         "w13","w13","w13")
 
@@ -122,18 +121,17 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
 
 ```{r}
 # data(big_counts)
-# sample_table2 <- sample_table[!rownames(sample_table) %in% 
+# sample_table2 <- sample_table[!rownames(sample_table) %in%
 #                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
 #                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
 # 
 # big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
 # dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table, design = ~age)
-# dds <- DESeq(dds)
-# save(dds, file = 'data/dds.RData')
+# deseq <- DESeq(dds)
+# save(deseq, file = 'data/deseq1.RData')
+data(deseq1)
 
-data(dds)
-
-res <- results(dds)
+res <- results(deseq)
 ## clean up res
 res <- data.frame(res[complete.cases(res),])
 
@@ -150,30 +148,26 @@ datatable(res[order(res$padj),], extensions = 'Buttons', options = list (dom = '
  - exclude CS16 for now
  
 ```{r}
-
 res <- res %>% dplyr::mutate(sig = case_when( padj > 0.05 ~  1, padj < 0.05 ~ 0))
 res$sig <- as.factor(res$sig)
 ggplot(res,aes(log2FoldChange,-log10(padj),colour = sig)) + geom_point() +
   ylab(expression(paste("-", log[10], "(padj)", sep=""))) + scale_colour_manual(values = c("red","black")) + 
     xlab(expression(paste( log[2], "(fold change)", sep=""))) + theme_bw() + theme(legend.position = "none")
-
 ```
-
 
 ### GO 
 - combine all changed genes between fetal and adult
 
 ```{r}
 library(clusterProfiler)
-
 ## genelist prepared according to these instructions:
 ## https://github.com/YuLab-SMU/DOSE/wiki/how-to-prepare-your-own-geneList
 # 
-# geneList <- res$log2FoldChange
-# names(geneList) <- res$ensgene
-# geneList <- sort(geneList, decreasing = TRUE)
-# geneList <- geneList[!is.na(names(geneList))]
-# gene <- names(geneList)[abs(geneList) > 2]
+geneList <- res$log2FoldChange
+names(geneList) <- res$ensgene
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+gene <- names(geneList)[abs(geneList) > 2]
 # #
 # library(org.Hs.eg.db)
 # ego <- enrichGO(gene          = gene,
@@ -185,13 +179,88 @@ library(clusterProfiler)
 #                 pvalueCutoff  = 0.01,
 #                 qvalueCutoff  = 0.05,
 #         readable      = TRUE)
-# #
+# # #
 #save(ego, file = 'data/my_ego.RData')
 data(my_ego)
 barplot(ego, showCategory=20)
 ```
 
+## tryHyper
+### Laurenti Muschen using ProB only
 
+```{r}
+library(hypeR)
+library(qusage)
+
+# data(big_counts)
+# sample_table2 <- sample_table[!rownames(sample_table) %in%
+#                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
+#                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
+# 
+# sample_table2 <- sample_table %>% tibble::rownames_to_column("my_rownames") %>% dplyr::filter(Phenotype == "CD34+CD19+" & pools == "BM" | Phenotype == "CD34+CD19+"  & pools == "CS19_23")
+# 
+# rownames(sample_table2) <- sample_table2$my_rownames
+# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table2))]
+# 
+# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table2, design = ~age)
+# 
+# 
+# deseq3 <- DESeq(dds)
+# save(deseq3, file = 'data/deseq3.RData')
+data(deseq3)
+res <- results(deseq3)
+geneList <- res$log2FoldChange
+names(geneList) <- rownames(res)
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+laurenti <- qusage::read.gmt("Laurenti_Muschen.ensembl.gmt")
+hyp_obj <- hypeR(geneList, laurenti, test="kstest", fdr_cutoff=0.01, do_plots = TRUE)
+hyp_dots(hyp_obj )
+```
+
+### CMP
+
+```{r}
+hyp_obj$plots[[2]]
+```
+
+
+```{r}
+hyp_obj$plots[[1]]
+```
+
+
+
+```{r}
+library(annotables)
+HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
+msigdb_path <- msigdb_download_all(species="Homo sapiens")
+BIOCARTA <- msigdb_fetch(msigdb_path, "C2.CP.BIOCARTA")
+KEGG     <- msigdb_fetch(msigdb_path, "C2.CP.KEGG")
+REACTOME <- msigdb_fetch(msigdb_path, "C2.CP.REACTOME")
+
+my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
+geneList = my_genelist$rank
+names(geneList) <- my_genelist$symbol
+
+hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+
+```
+
+## KEGG
+
+```{r}
+hyp_obj <- hypeR(geneList, KEGG, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+```
+
+## Reactome
+
+```{r}
+hyp_obj <- hypeR(geneList, REACTOME, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+```
 
 ### UMAP/tSNE plot or PCA plot
 
@@ -248,7 +317,6 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   labs(colour = "phenotype", shape = "pools") 
 ```
 
-
 ## Take out CD34+CD38-CD45RA-
 
 ### tSNE
@@ -293,7 +361,6 @@ ggplot(my_umap_plot$data,aes(x=my_umap_plot$data$X,y=my_umap_plot$data$Y,colour 
   ylab(label = "UMAP 2") + labs(colour = "phenotype", shape = "pools")
 ```
 
-
 ## IL7R only
 
 ### tSNE
@@ -327,56 +394,109 @@ ggplot(my_pca_plot$data,aes(x=my_pca_plot$data$X,y=my_pca_plot$data$Y,colour = c
   ylab(label = "PCA 2") + labs(colour = "pools", shape = "pools")
 ```
 
-### UMAP not working for small sample size
+### DGE performed after HSCs taken out
 
 ```{r}
-# prep fpkm file
-# jun_fpkm <- read.table('human_fpkm.tsv', header = TRUE, stringsAsFactors = FALSE)
-# jun_fpkm <- dplyr::rename(fpkm,
-#                                BM_P5_11       = C23_N728_S505,
-#                                BM_P10_11      = B04_N704_S503,
-#                                BM_P12_11      = B06_N706_S503,
-#                                CS19_P5_11     = B08_N710_S503,
-#                                CS19_P12_11    = B12_N715_S503,
-#                                BM1_P5_12      = B14_N718_S503,
-#                                BM1_P10_12     = B16_N720_S503,
-#                                BM1_P12_12     = B18_N722_S503,
-#                                BM2_P5_12      = B20_N724_S503,
-#                                BM2_P10_12     = B22_N727_S503,
-#                                BM2_P12_12     = F20_N724_S508,
-#                                CB_P5_12       = E23_N728_S507,
-#                                CB_P10_12      = D04_N704_S506,
-#                                CB_P12_12      = D06_N706_S506,
-#                                CS22_P5_12     = D08_N710_S506,
-#                                CS22_P10_12    = D10_N712_S506,
-#                                CS22_P12_12    = D12_N715_S506,
-#                                CS20_P5_12     = D14_N718_S506,
-#                                CS20_P10_12    = D16_N720_S506,
-#                                CS20_P12_12    = D18_N722_S506,
-#                                FL13w_P5_13    = D20_N724_S506,
-#                                FL13w_P10_13   = D22_N727_S506,
-#                                FL13w_P12_13   = F22_N727_S508,
-#                                CS23_P5_13     = G23_N728_S510,
-#                                CS23_P10_13    = F04_N704_S508,
-#                                CS23_P12_13    = F06_N706_S508,
-#                                CS22_P5_19     = F08_N710_S508,
-#                                CS22_P10_19    = F10_N712_S508,
-#                                CS22_P12_19    = F12_N715_S508,
-#                                w13_FL_P5_19   = F14_N718_S508,
-#                                w13_FL_P10_19  = F16_N720_S508,
-#                                w13_FL_P12_19  = F18_N722_S508)
+# data(big_counts)
+# sample_table2 <- sample_table[!rownames(sample_table) %in%
+#                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
+#                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
 # 
-# rownames(jun_fpkm) <- jun_fpkm$ensgene
-# 
-# nov_20_fpkm <- read.table('legion/20_nov_18/temp2', header = TRUE, stringsAsFactors = FALSE)
-# rownames(nov_20_fpkm) <- nov_20_fpkm$ensgene
-# 
-# nov_20_fpkm <- nov_20_fpkm[which(rownames(nov_20_fpkm) %in% rownames(jun_fpkm)),]
-# jun_fpkm<-jun_fpkm[which(rownames(jun_fpkm) %in% rownames(nov_20_fpkm)),]
-# big_fpkm  <- cbind(jun_fpkm,nov_20_fpkm)
-# big_fpkm$ensgene <- NULL
-# big_fpkm$ensgene <- NULL
-# big_fpkm <- big_fpkm[,-34]
-save(big_fpkm, file = 'data/big_fpkm.RData')
+# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
+# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table, design = ~age)
+# dds <- dds[,dds$Phenotype != "CD34+CD38-CD45RA-"]
+# deseq2 <- DESeq(dds)
+# save(deseq2, file = 'data/deseq2.RData')
+data(deseq2)
+
+res <- results(deseq2)
+## clean up res
+res <- data.frame(res[complete.cases(res),])
+
+## add entrez and gene symbols
+my_colnames <- colnames(res)
+res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
+  dplyr::select(ensgene,symbol,entrez,my_colnames)
+
+datatable(res[order(res$padj),], extensions = 'Buttons', options = list (dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel')))
 ```
+
+### Volcano plot 
+ IL7R prog and proB from adult BM vs w12-13, w8-10 and CS samples 
+ - exclude CS16 for now
+ 
+```{r}
+
+res <- res %>% dplyr::mutate(sig = case_when( padj > 0.05 ~  1, padj < 0.05 ~ 0))
+res$sig <- as.factor(res$sig)
+ggplot(res,aes(log2FoldChange,-log10(padj),colour = sig)) + geom_point() +
+  ylab(expression(paste("-", log[10], "(padj)", sep=""))) + scale_colour_manual(values = c("red","black")) + 
+    xlab(expression(paste( log[2], "(fold change)", sep=""))) + theme_bw() + theme(legend.position = "none")
+
+```
+
+### GO 
+- combine all changed genes between fetal and adult
+
+```{r}
+library(clusterProfiler)
+
+## genelist prepared according to these instructions:
+## https://github.com/YuLab-SMU/DOSE/wiki/how-to-prepare-your-own-geneList
+# 
+geneList <- res$log2FoldChange
+names(geneList) <- res$ensgene
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+gene <- names(geneList)[abs(geneList) > 2]
+# #
+library(org.Hs.eg.db)
+ego <- enrichGO(gene          = gene,
+                universe      = names(geneList),
+                OrgDb         = org.Hs.eg.db,
+                keyType = "ENSEMBL",
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.01,
+                qvalueCutoff  = 0.05,
+        readable      = TRUE)
+# # #
+
+barplot(ego, showCategory=20)
+```
+
+## tryHyper
+
+```{r}
+library(hypeR)
+library(annotables)
+HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
+msigdb_path <- msigdb_download_all(species="Homo sapiens")
+BIOCARTA <- msigdb_fetch(msigdb_path, "C2.CP.BIOCARTA")
+KEGG     <- msigdb_fetch(msigdb_path, "C2.CP.KEGG")
+REACTOME <- msigdb_fetch(msigdb_path, "C2.CP.REACTOME")
+
+my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
+geneList = my_genelist$rank
+names(geneList) <- my_genelist$symbol
+
+hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+
+```
+
+## KEGG
+
+```{r}
+hyp_obj <- hypeR(geneList, KEGG, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+```
+
+## Reactome
+
+```{r}
+hyp_obj <- hypeR(geneList, REACTOME, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+```
+
 
