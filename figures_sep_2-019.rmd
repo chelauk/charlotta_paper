@@ -35,6 +35,10 @@ library(DESeq2)
 library(fgsea)
 library(DT)
 library(stringr)
+library(hypeR)
+library(qusage)
+library(annotables)
+library(clusterProfiler)
 ```
 
 ```{r data_prep}
@@ -125,17 +129,17 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
 #                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
 #                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
 # 
-# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
-# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table, design = ~age)
+# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table2))]
+# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table2, design = ~age)
 # deseq <- DESeq(dds)
 # save(deseq, file = 'data/deseq1.RData')
-data(deseq1)
-
-res <- results(deseq)
+# data(deseq1)
+# res <- results(deseq)
 ## clean up res
-res <- data.frame(res[complete.cases(res),])
-
+# res <- data.frame(res[complete.cases(res),])
+# save(res, file = 'data/res1.RData')
 ## add entrez and gene symbols
+data(res1)
 my_colnames <- colnames(res)
 res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
   dplyr::select(ensgene,symbol,entrez,my_colnames)
@@ -159,7 +163,6 @@ ggplot(res,aes(log2FoldChange,-log10(padj),colour = sig)) + geom_point() +
 - combine all changed genes between fetal and adult
 
 ```{r}
-library(clusterProfiler)
 ## genelist prepared according to these instructions:
 ## https://github.com/YuLab-SMU/DOSE/wiki/how-to-prepare-your-own-geneList
 # 
@@ -189,9 +192,6 @@ barplot(ego, showCategory=20)
 ### Laurenti Muschen using ProB only
 
 ```{r}
-library(hypeR)
-library(qusage)
-
 # data(big_counts)
 # sample_table2 <- sample_table[!rownames(sample_table) %in%
 #                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
@@ -230,18 +230,68 @@ hyp_obj$plots[[1]]
 ```
 
 
+### Laurenti Muschen using IL7R only
+### NO assotiation found with Laurenti gene lists.
+
+```{r}
+# data(big_counts)
+# sample_table2 <- sample_table[!rownames(sample_table) %in%
+#                c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
+#                                 "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
+# 
+# sample_table2 <- sample_table2 %>% tibble::rownames_to_column("my_rownames") %>% dplyr::filter(Phenotype == "IL7R+Kit+" & pools == "BM" | Phenotype == "IL7R+Kit+"  & pools == "CS19_23")
+# 
+# rownames(sample_table2) <- sample_table2$my_rownames
+# big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table2))]
+# 
+# dds <- DESeqDataSetFromMatrix(big_counts, colData = sample_table2, design = ~age)
+# 
+# 
+# deseq4 <- DESeq(dds)
+# save(deseq4, file = 'data/deseq4.RData')
+data(deseq4)
+res <- results(deseq4)
+geneList <- res$log2FoldChange
+names(geneList) <- rownames(res)
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+laurenti <- qusage::read.gmt("Laurenti_Muschen.ensembl.gmt")
+hyp_obj <- hypeR(geneList, laurenti, test="kstest", fdr_cutoff=0.01, do_plots = TRUE)
+hyp_dots(hyp_obj )
+```
+
+### Try with HALLMARK
 
 ```{r}
 library(annotables)
+HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
+my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
+geneList = my_genelist$rank
+names(geneList) <- my_genelist$symbol
+
+hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
+hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
+```
+
+## GSEA with Adult V fetal (in general)
+
+```{r}
+data(res1)
+res <- data.frame(res)
+my_colnames <- colnames(res)
+res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
+  dplyr::select(ensgene,symbol,entrez,my_colnames)
+geneList <- res$log2FoldChange
+names(geneList) <- res$symbol
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
+
 HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
 msigdb_path <- msigdb_download_all(species="Homo sapiens")
 BIOCARTA <- msigdb_fetch(msigdb_path, "C2.CP.BIOCARTA")
 KEGG     <- msigdb_fetch(msigdb_path, "C2.CP.KEGG")
 REACTOME <- msigdb_fetch(msigdb_path, "C2.CP.REACTOME")
 
-my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
-geneList = my_genelist$rank
-names(geneList) <- my_genelist$symbol
 
 hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
@@ -273,9 +323,14 @@ hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
 set.seed(123)
 # UMAP, PCA and TSNE are embedded in scater
 data(big_counts)
-big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table))]
+sample_table2 <- sample_table[!rownames(sample_table) %in%
+               c("CB2_E4_8W_P12","CB2_E6_BM_P12","CB2_B2_CS19_P12",
+                                "CB2_A7_10w_P12","CB2_D9_CS20_P12"),]
+
+big_counts <- big_counts[, which(colnames(big_counts) %in% rownames(sample_table2))]
+
 sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
-                            colData = sample_table)
+                            colData = sample_table2)
 
 sce <- normalize(sce)
 my_tsne_plot <- plotTSNE(sce, colour_by = "Phenotype", shape_by = "pools")
@@ -325,7 +380,7 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
 set.seed(123)
 # UMAP, PCA and TSNE are embedded in scater
 sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
-                            colData = sample_table)
+                            colData = sample_table2)
 
 sce <- sce[,!str_detect(sce$Phenotype, "CD45RA")]
 
@@ -369,7 +424,7 @@ ggplot(my_umap_plot$data,aes(x=my_umap_plot$data$X,y=my_umap_plot$data$Y,colour 
 set.seed(123)
 # UMAP, PCA and TSNE are embedded in scater
 sce <- SingleCellExperiment(list(counts = as.matrix(big_counts)),
-                            colData = sample_table)
+                            colData = sample_table2)
 
 sce <- sce[,str_detect(sce$Phenotype, "IL7R")]
 
@@ -461,7 +516,6 @@ ego <- enrichGO(gene          = gene,
                 qvalueCutoff  = 0.05,
         readable      = TRUE)
 # # #
-
 barplot(ego, showCategory=20)
 ```
 
