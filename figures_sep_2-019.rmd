@@ -121,7 +121,8 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
   formatStyle("pools", backgroundColor = styleEqual(c("W12_13","CS19_23","CB","W8_10","BM","CS16"), c("#9986A5","#79402E", "#CCBA72","#F3DF6C","#D9D0D3","#8D8680")))
 ```
 
-### DGE performed after removing outliers illustrated in the tSNA/PCA/UMAPs below
+## Differential gene expression all adult v all fetal
+### DGE performed after removing outliers
 
 ```{r}
 # data(big_counts)
@@ -148,8 +149,7 @@ datatable(res[order(res$padj),], extensions = 'Buttons', options = list (dom = '
 ```
 
 ### Volcano plot 
- - HSC like cells, IL7R prog and proB from adult BM vs w12-13, w8-10 and CS samples 
- - exclude CS16 for now
+#### All adult v all fetal
  
 ```{r}
 res <- res %>% dplyr::mutate(sig = case_when( padj > 0.05 ~  1, padj < 0.05 ~ 0))
@@ -166,6 +166,7 @@ ggplot(res,aes(log2FoldChange,-log10(padj),colour = sig)) + geom_point() +
 ## genelist prepared according to these instructions:
 ## https://github.com/YuLab-SMU/DOSE/wiki/how-to-prepare-your-own-geneList
 # 
+HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
 geneList <- res$log2FoldChange
 names(geneList) <- res$ensgene
 geneList <- sort(geneList, decreasing = TRUE)
@@ -188,7 +189,7 @@ data(my_ego)
 barplot(ego, showCategory=20)
 ```
 
-## tryHyper
+## GSEA using ProB
 ### Laurenti Muschen using ProB only
 
 ```{r}
@@ -218,6 +219,14 @@ hyp_obj <- hypeR(geneList, laurenti, test="kstest", fdr_cutoff=0.01, do_plots = 
 hyp_dots(hyp_obj )
 ```
 
+### Hallmark with ProB yeilds nothing
+
+```{r, eval = FALSE }
+hallmark_hyp_obj <- hypeR(geneList, HALLMARK, test = "kstest", fdr_cutoff = 0.01, do_plots = TRUE)
+hyp_dots(hallmark_hyp_obj)
+```
+
+
 ### CMP
 
 ```{r}
@@ -230,7 +239,7 @@ hyp_obj$plots[[1]]
 ```
 
 
-### Laurenti Muschen using IL7R only
+## Using IL7R only fetal v adult
 ### NO assotiation found with Laurenti gene lists.
 
 ```{r}
@@ -256,22 +265,53 @@ names(geneList) <- rownames(res)
 geneList <- sort(geneList, decreasing = TRUE)
 geneList <- geneList[!is.na(names(geneList))]
 laurenti <- qusage::read.gmt("Laurenti_Muschen.ensembl.gmt")
-hyp_obj <- hypeR(geneList, laurenti, test="kstest", fdr_cutoff=0.01, do_plots = TRUE)
-hyp_dots(hyp_obj )
+# hyp_obj <- hypeR(geneList, laurenti, test="kstest", fdr_cutoff=0.01, do_plots = TRUE)
+# hyp_dots(hyp_obj )
 ```
 
-### Try with HALLMARK
+### Fetal v Adult IL7R only there is an enrichment in Hallmark genelists
 
 ```{r}
 library(annotables)
-HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
 my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
 geneList = my_genelist$rank
 names(geneList) <- my_genelist$symbol
 
-hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
+hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01, do_plots = TRUE)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
 ```
+
+
+### G2M
+
+```{r}
+hyp_obj$plots[[1]]
+```
+
+### E2F Targets
+
+```{r}
+hyp_obj$plots[[2]]
+```
+
+## Epithelial to mesenchymal transition
+
+```{r}
+hyp_obj$plots[[3]]
+```
+
+### KRAS signaling DN
+
+```{r}
+hyp_obj$plots[[4]]
+```
+
+### hallmark myc targets
+
+```{r}
+hyp_obj$plots[[5]]
+```
+
 
 ## GSEA with Adult V fetal (in general)
 
@@ -286,7 +326,6 @@ names(geneList) <- res$symbol
 geneList <- sort(geneList, decreasing = TRUE)
 geneList <- geneList[!is.na(names(geneList))]
 
-HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
 msigdb_path <- msigdb_download_all(species="Homo sapiens")
 BIOCARTA <- msigdb_fetch(msigdb_path, "C2.CP.BIOCARTA")
 KEGG     <- msigdb_fetch(msigdb_path, "C2.CP.KEGG")
@@ -310,13 +349,13 @@ hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
 ```{r}
 hyp_obj <- hypeR(geneList, REACTOME, test="kstest", fdr_cutoff=0.01)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
-```
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ```
 
 ### UMAP/tSNE plot or PCA plot
 
 - only IL7R and proB from BM and all fetal stages 
 - exclude CB, do with and without CS16
-
+Laurenti Muschen using ProB only
 ### tSNE
 
 ```{r}
@@ -553,4 +592,11 @@ hyp_obj <- hypeR(geneList, REACTOME, test="kstest", fdr_cutoff=0.01)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
 ```
 
+
+## FPKM looking at previous data
+
+```{r, eval = FALSE}
+fpkms1 <- read.table('legion/human_fpkm.tsv', header = TRUE, stringsAsFactors = FALSE )
+fpkms2 <- read.table('legion/20_nov_18/temp2', header = TRUE, stringsAsFactors = FALSE )
+```
 
