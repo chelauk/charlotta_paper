@@ -141,10 +141,14 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
 # save(res, file = 'data/res1.RData')
 ## add entrez and gene symbols
 data(res1)
+
+
 my_colnames <- colnames(res)
 res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
   dplyr::select(ensgene,symbol,entrez,my_colnames)
 
+# save for shiny app
+# save(res,file="shiny/data/res.RData")
 datatable(res[order(res$padj),], extensions = 'Buttons', options = list (dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel')))
 ```
 
@@ -349,13 +353,13 @@ hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
 ```{r}
 hyp_obj <- hypeR(geneList, REACTOME, test="kstest", fdr_cutoff=0.01)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ```
+```
 
 ### UMAP/tSNE plot or PCA plot
 
 - only IL7R and proB from BM and all fetal stages 
 - exclude CB, do with and without CS16
-Laurenti Muschen using ProB only
+
 ### tSNE
 
 ```{r}
@@ -396,6 +400,13 @@ ggplot(my_data,aes(X,Y,colour = colour_by, shape = shape_by)) +
   xlab(label = "PCA 1") +
   ylab(label = "PCA 2") + 
   labs(colour = "batch", shape = "pools") 
+```
+
+
+### PCA 3 dims
+
+```{r}
+plotPCA(sce, colour_by = "batch", shape_by = "pools", ncomponents = 3)
 ```
 
 ### UMAP
