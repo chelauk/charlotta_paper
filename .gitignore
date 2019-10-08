@@ -1,6 +1,5 @@
 .Rproj.user
 .Rhistory
-.RData
 README.html
 *_cache/
 *_files/
@@ -8,5 +7,3 @@ README.html
 *Rproj
 *html
 legion/
-shiny/rsconnect/
-data/

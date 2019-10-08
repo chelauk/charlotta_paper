@@ -1,0 +1,13 @@
+name: volcano_plot
+title: volcano_plot
+username:
+account: chelauk
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1300652
+bundleId: 2480315
+url: https://chelauk.shinyapps.io/volcano_plot/
+when: 1570545849.39265
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app.html
