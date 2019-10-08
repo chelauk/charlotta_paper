@@ -30,15 +30,15 @@ library(Biobase)
 library(tibble)
 library(scater)
 library(gghighlight)
-library(annotables)
 library(DESeq2)
 library(fgsea)
 library(DT)
 library(stringr)
 library(hypeR)
 library(qusage)
-library(annotables)
 library(clusterProfiler)
+library(biomaRt)
+library(org.Hs.eg.db)
 ```
 
 ```{r data_prep}
@@ -140,13 +140,19 @@ datatable(sample_table,extensions = 'Buttons', options = list (dom = 'Bfrtip', b
 # res <- data.frame(res[complete.cases(res),])
 # save(res, file = 'data/res1.RData')
 ## add entrez and gene symbols
-data(res1)
-
-
-my_colnames <- colnames(res)
-res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
-  dplyr::select(ensgene,symbol,entrez,my_colnames)
-
+# data(res1)
+# 
+# my_colnames <- colnames(res)
+# 
+# ensembl = useMart("ensembl",dataset="hsapiens_gene_ensembl")
+# 
+# my_df <- getBM(attributes = c("ensembl_gene_id","hgnc_symbol"), filters = "ensembl_gene_id", values = rownames(res), mart = ensembl)
+# 
+# res <- left_join(rownames_to_column(res,"ensembl_gene_id"),my_df,by = "ensembl_gene_id") %>%
+#   dplyr::select(ensembl_gene_id,hgnc_symbol,my_colnames)
+# 
+# saveRDS(res, file = 'data/res1.RData')
+res <- readRDS('data/res1.RData')
 # save for shiny app
 # save(res,file="shiny/data/res.RData")
 datatable(res[order(res$padj),], extensions = 'Buttons', options = list (dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel')))
@@ -276,10 +282,17 @@ laurenti <- qusage::read.gmt("Laurenti_Muschen.ensembl.gmt")
 ### Fetal v Adult IL7R only there is an enrichment in Hallmark genelists
 
 ```{r}
-library(annotables)
-my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
+
+# my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
+# geneList = my_genelist$rank
+# ens_to_external <- getBM(attributes = c("ensembl_gene_id","external_gene_name", "entrezgene_id"), filters = "chromosome_name", values=my_chr,mart = ensembl)
+# saveRDS(ens_to_external,'data/ens_to_external.RDS')
+
+ens_to_external <- readRDS('data/ens_to_external.RDS')
+
+my_genelist <- left_join(data.frame("ensembl_gene_id" = names(geneList), "rank" = geneList), ens_to_external, by = "ensembl_gene_id" ) %>% dplyr::select(external_gene_name, rank)
 geneList = my_genelist$rank
-names(geneList) <- my_genelist$symbol
+names(geneList) <- my_genelist$external_gene_name
 
 hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01, do_plots = TRUE)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
@@ -320,13 +333,9 @@ hyp_obj$plots[[5]]
 ## GSEA with Adult V fetal (in general)
 
 ```{r}
-data(res1)
-res <- data.frame(res)
-my_colnames <- colnames(res)
-res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
-  dplyr::select(ensgene,symbol,entrez,my_colnames)
+res <- readRDS('data/res1.RData')
 geneList <- res$log2FoldChange
-names(geneList) <- res$symbol
+names(geneList) <- res$hgnc_symbol
 geneList <- sort(geneList, decreasing = TRUE)
 geneList <- geneList[!is.na(names(geneList))]
 
@@ -335,10 +344,8 @@ BIOCARTA <- msigdb_fetch(msigdb_path, "C2.CP.BIOCARTA")
 KEGG     <- msigdb_fetch(msigdb_path, "C2.CP.KEGG")
 REACTOME <- msigdb_fetch(msigdb_path, "C2.CP.REACTOME")
 
-
 hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
-
 ```
 
 ## KEGG
@@ -520,8 +527,8 @@ res <- data.frame(res[complete.cases(res),])
 
 ## add entrez and gene symbols
 my_colnames <- colnames(res)
-res <- left_join(rownames_to_column(res,"ensgene"),grch38,by = "ensgene") %>%
-  dplyr::select(ensgene,symbol,entrez,my_colnames)
+res <- left_join(rownames_to_column(res,"ensembl_gene_id"),ens_to_external,by = "ensembl_gene_id") %>%
+  dplyr::select(ensembl_gene_id,external_gene_name,entrezgene_id,my_colnames)
 
 datatable(res[order(res$padj),], extensions = 'Buttons', options = list (dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel')))
 ```
@@ -544,45 +551,39 @@ ggplot(res,aes(log2FoldChange,-log10(padj),colour = sig)) + geom_point() +
 - combine all changed genes between fetal and adult
 
 ```{r}
-library(clusterProfiler)
 
 ## genelist prepared according to these instructions:
 ## https://github.com/YuLab-SMU/DOSE/wiki/how-to-prepare-your-own-geneList
 # 
-geneList <- res$log2FoldChange
-names(geneList) <- res$ensgene
-geneList <- sort(geneList, decreasing = TRUE)
-geneList <- geneList[!is.na(names(geneList))]
-gene <- names(geneList)[abs(geneList) > 2]
+# geneList <- res$log2FoldChange
+# names(geneList) <- res$ensembl_gene_id
+# geneList <- sort(geneList, decreasing = TRUE)
+# geneList <- geneList[!is.na(names(geneList))]
+# gene <- names(geneList)[abs(geneList) > 2]
 # #
-library(org.Hs.eg.db)
-ego <- enrichGO(gene          = gene,
-                universe      = names(geneList),
-                OrgDb         = org.Hs.eg.db,
-                keyType = "ENSEMBL",
-                ont           = "BP",
-                pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01,
-                qvalueCutoff  = 0.05,
-        readable      = TRUE)
+# my_ego2 <- enrichGO(gene          = gene,
+#                 universe      = names(geneList),
+#                 OrgDb         = org.Hs.eg.db,
+#                 keyType = "ENSEMBL",
+#                 ont           = "BP",
+#                 pAdjustMethod = "BH",
+#                 pvalueCutoff  = 0.01,
+#                 qvalueCutoff  = 0.05,
+#         readable      = TRUE)
+# save(my_ego2, file = 'data/my_ego2.RData')
+data('my_ego2')
 # # #
-barplot(ego, showCategory=20)
+barplot(my_ego2, showCategory=20)
 ```
 
 ## tryHyper
 
 ```{r}
-library(hypeR)
-library(annotables)
-HALLMARK <- msigdb_download_one(species="Homo sapiens", category="H")
-msigdb_path <- msigdb_download_all(species="Homo sapiens")
-BIOCARTA <- msigdb_fetch(msigdb_path, "C2.CP.BIOCARTA")
-KEGG     <- msigdb_fetch(msigdb_path, "C2.CP.KEGG")
-REACTOME <- msigdb_fetch(msigdb_path, "C2.CP.REACTOME")
 
-my_genelist <- left_join(data.frame("ensgene" = names(geneList), "rank" = geneList), grch38, by = "ensgene" ) %>% dplyr::select(symbol, rank)
-geneList = my_genelist$rank
-names(geneList) <- my_genelist$symbol
+my_geneList <- res$log2FoldChange
+names(geneList) <- res$external_gene_name
+geneList <- sort(geneList, decreasing = TRUE)
+geneList <- geneList[!is.na(names(geneList))]
 
 hyp_obj <- hypeR(geneList, HALLMARK, test="kstest", fdr_cutoff=0.01)
 hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
@@ -604,10 +605,4 @@ hyp_dots(hyp_obj, show_plots=FALSE, return_plots=TRUE)
 ```
 
 
-## FPKM looking at previous data
-
-```{r, eval = FALSE}
-fpkms1 <- read.table('legion/human_fpkm.tsv', header = TRUE, stringsAsFactors = FALSE )
-fpkms2 <- read.table('legion/20_nov_18/temp2', header = TRUE, stringsAsFactors = FALSE )
-```
 
